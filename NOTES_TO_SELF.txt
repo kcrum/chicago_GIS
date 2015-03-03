@@ -1,0 +1,96 @@
+
+All shapefiles downloaded from the City of Chicago's Open Data portal were
+created in a specific projection. The full information about this projection 
+can be found in the .prj file, but the basic idea is that all map points are 
+specified by number of feet from some reference point, rather than latitude and
+longitude. 
+
+Python's Basemaps package is a bit finicky about projections, and really only
+works with the WGS84/EPSG:4326 projection, which specifies points in longitude 
+and latitude. There are two ways to transform from the City's projection to the
+EPSG:4326 projection. 
+
+
+#PROJECTION TRANSFORMATIONS
+
+
+##The Easy(but not self-contained in python) Way:
+
+If you first transform the shapefiles to the EPSG:4326 projection before 
+reading them in python, you can save yourself a fair amount of trouble. You can
+perform this transformation by moving into the 'shapefiles' directory and 
+issuing the following call from the command line:
+  $> ogr2ogr -t_srs EPSG:4326 wgs84_wards Wards.shp
+
+Now you can plot the ward boundaries in python with the following python code:
+
+########################
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+
+# Map corners in lon/lat
+urcornerlat = 42.03
+urcornerlong = -87.51
+llcornerlat = 41.64
+llcornerlong = -87.95
+
+m = Basemap(projection='merc', resolution='i', ax=ax
+            llcrnrlat=llcornerlat, urcrnrlat=urcornerlat,
+            llcrnrlon=llcornerlong, urcrnrlon=urcornerlong)
+m.drawmapboundary()
+m.readshapefile('shapefiles/wgs84_wards/Wards','Wards')
+plt.show()
+########################
+
+Pretty easy right?
+
+
+## The Hard (but self-contained in python) Way:
+
+You can manually transform each point in python using the 'pyproj' module. This
+is a python wrapper for the PROJ.4 library, a library which is ubiquitous in 
+the GIS world. The pyproj.Proj class takes as an argument a string which 
+identifies your projection. If you know the EPSG code that specifies your 
+projection, you're all set. 
+
+However in the case of Chicago's data, I was unsure which EPSG code applied, so
+I used the .prj file to deduce "the PROJ.4 string." The PROJ.4 library takes
+the relevant characteristics of a projection in long strings that are passed as
+command line arguments. Given a .prj file, you can call the 
+"esriprj_to_proj4()" function in ".../chicago_GIS/utils.py" to return the 
+PROJ.4 string that characterizes the original projection.
+
+(IF COPYING FOR BLOG: Give proper attribution for sriprj_to_proj4() function)
+
+With the PROJ.4 string in hand, we can read in the points from the original
+shapefile and individually transform them to longitude and latitude. Here's 
+what that python code looks like:
+
+########################
+import utils
+import shapefile
+import pyproj
+
+shapefileroot = 'shapefiles/Wards'
+sfile = shapefile.Reader(shapefileroot)	
+proj4string = utils.esriprj_to_proj4(shapefileroot + '.prj')
+
+# Preserve_units ensures the input projection is treated in feet!
+inproj = pyproj.Proj(proj4string, preserve_units=True)
+outproj = pyproj.Proj(init='epsg:4326')
+
+for record, shape in zip(sfile.records(),sfile.shapes()):
+    # Get points (in input projection) from shapefile
+    xarr,yarr = zip(*shape.points)
+    # Transform points from input projection to longitudes and latitudes
+    lons, lats = pyproj.transform(inproj, outproj, xarr, yarr)
+
+    ## Use lons and lats for LineCollection, for example...
+########################
+
+The main issue with this approach is that you need to handle the individual
+points from the shapefile. There are probably ways to do this that aren't too 
+painful, but using the Basemap.readshapefile() method on a EPSG:4326 projection
+is much more straighforward.
