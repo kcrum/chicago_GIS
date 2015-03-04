@@ -17,18 +17,33 @@ def esriprj_to_proj4(shapeprj_path):
     return srs.ExportToProj4()
 
 
-def mayor_results_df_ward(filepath='data/overall_mayor_results.txt',nwards=50):
+def mayor_results_df_ward(filepath='data/raw_files/overall_mayor_results.txt',
+                          year2011=False, nwards=50):
     # This is the ordering of the columns in the Board of Elections data. The
     # columns unfotunately get spread out line-by-line in the text file.
     coldict = {0:'Ward',1:'Votes Cast',2:'RAHM EMANUEL',3:'pct',
                4:'WILLIE WILSON',5:'pct',6:'ROBERT W. FIORETTI',7:'pct',
                8:'JESUS "CHUY" GARCIA',9:'pct',10:'WILLIAM WALLS III',11:'pct'}
+    columns = ['Ward','Votes Cast','RAHM EMANUEL', 'WILLIE WILSON',
+               'ROBERT W. FIORETTI','JESUS "CHUY" GARCIA','WILLIAM WALLS III']
+
+    # This is the ordering of the columns in the Board of Elections data for 
+    # the 2011 election. The columns unfotunately get spread out line-by-line 
+    # in the text file.
+    coldict2011 = {0:'Ward',1:'Votes Cast',2:'RAHM EMANUEL',3:'pct',
+                   4:'MIGUEL DEL VALLE',5:'pct',6:'CAROL MOSELEY BRAUN',
+                   7:'pct',8:'GERY J. CHICO',9:'pct',
+                   10:'PATRICIA VAN PELT WATKINS',11:'pct',
+                   12:'WILLIAM WALLS III',13:'pct'}
+    columns2011 = ['Ward','Votes Cast','RAHM EMANUEL','MIGUEL DEL VALLE',
+                   'CAROL MOSELEY BRAUN','GERY J. CHICO',
+                   'PATRICIA VAN PELT WATKINS','WILLIAM WALLS III']
+    if year2011:
+        columns = columns2011
+        coldict = coldict2011
 
     # Create dataframe
-    df = pd.DataFrame(columns=['Ward','Votes Cast','RAHM EMANUEL',
-                               'WILLIE WILSON','ROBERT W. FIORETTI',
-                               'JESUS "CHUY" GARCIA','WILLIAM WALLS III'], 
-                      index=np.arange(1,nwards + 1))
+    df = pd.DataFrame(columns=columns, index=np.arange(1,nwards + 1))
     nline = 0
     # Read file, fill dataframe
     with open(filepath) as f:
@@ -50,7 +65,7 @@ def mayor_results_df_ward(filepath='data/overall_mayor_results.txt',nwards=50):
     return df
 
 
-def mayor_results_df_ward_precinct(nwards=50):
+def scrape_mayor_results_precinct(nwards=50):
     '''
     Scrape Chicago Board of Elections pages for ward-by-ward, precinct-level
     mayoral election results. 

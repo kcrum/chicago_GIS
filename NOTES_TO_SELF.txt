@@ -91,6 +91,6 @@ for record, shape in zip(sfile.records(),sfile.shapes()):
 ########################
 
 The main issue with this approach is that you need to handle the individual
-points from the shapefile. There are probably ways to do this that aren't too 
-painful, but using the Basemap.readshapefile() method on a EPSG:4326 projection
-is much more straighforward.
+points from the shapefile. One approach can be found in [here](http://nbviewer.ipython.org/github/rjtavares/numbers_arent_people/blob/master/experiments/Plotting%20with%20Basemap%20and%20Shapefiles.ipynb). There may be even less painful
+ways to do this, but using the Basemap.readshapefile() method on a EPSG:4326 
+projection is much more straighforward, in my humble opinion.
