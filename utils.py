@@ -185,3 +185,5 @@ def shape_to_linecollection(shape, chimap, edgecolor='k', linewidth=0.1):
     lines.set_edgecolors(edgecolor)
     lines.set_linewidth(linewidth)
     return lines
+
+    

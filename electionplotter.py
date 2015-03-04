@@ -305,6 +305,30 @@ def draw_ward_tracts(wardshape, chimap, ax=plt.gca()):
     plt.show()
 
 
+def bad_census_tracts(chimap, ax=plt.gca(), edgecolor='k', verbose=False,
+                      filepath='shapefiles/wgs84_ACSdata_tracts/ChTr0812'):
+    '''
+    Adds census tracts that fail shapely's "is_valid" check to axis object. If
+    verbose, also outputs index number and tract number for these bad tracts.
+    TO DO: Consider buffering these shapes to get rid of small artifacts? Still
+    not sure how to handle large disjoing polygons, however...
+    '''
+    sfile = shapefile.Reader(filepath)
+
+    colors = ['#E24A33', '#348ABD', '#988ED5', '#777777', '#FBC15E', '#8EBA42',
+              '#FFB5B8']
+
+    for shape, rec in zip(sfile.shapes(), sfile.records()):
+        tractpoly = geom.Polygon(shape.points)
+        if not tractpoly.is_valid:
+            if verbose:
+                print 'Shape index: %s tract number: %s' % (rec[0] - 1, rec[3])
+
+            lines = utils.shape_to_linecollection(shape, chimap)
+            lines.set_facecolor(np.random.choice(colors))
+            ax.add_collection(lines)
+
+
 if __name__=='__main__':
     if len(sys.argv) == 1:
         rahm_vs_chuy()
