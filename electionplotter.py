@@ -14,9 +14,10 @@ import utils
 import sys
 # GIS modules
 from mpl_toolkits.basemap import Basemap
+from shapely.topology import TopologicalError
+import shapely.geometry as geom
 import shapefile  
 import pyproj
-
 
 
 def create_line_segments(chimap, sfile, proj4string, color=True, 
@@ -101,6 +102,24 @@ def create_line_segments(chimap, sfile, proj4string, color=True,
         ax.add_collection(lines)
 
 
+def draw_chicago(projection='merc', resolution='c',ax=plt.gca()):
+    '''
+    Create and return Chicago Basemap upon which wards will be plotted.
+    '''
+    # Chicago corners
+    urcornerlat = 42.03
+    urcornerlong = -87.51
+    llcornerlat = 41.64
+    llcornerlong = -87.95
+
+    m = Basemap(projection=projection, resolution=resolution,
+            llcrnrlat=llcornerlat, urcrnrlat=urcornerlat,
+                llcrnrlon=llcornerlong, urcrnrlon=urcornerlong, ax=ax)
+    m.drawmapboundary()
+
+    return m
+
+
 def alderman_dict(sfile):
     '''
     Given the ward shapefile, return a dictionary with key = ward #, 
@@ -112,24 +131,6 @@ def alderman_dict(sfile):
             aldermandict[int(rec[2])] = rec[3]
         
     return aldermandict
-
-
-def draw_chicago(projection='merc', resolution='c',ax=plt.gca()):
-    '''
-    Create and return Chicago Basemap upon which wards will be plotted.
-    '''
-    # Chicago corners
-    urcornerlat = 42.03 
-    urcornerlong = -87.51 
-    llcornerlat = 41.64
-    llcornerlong = -87.95
-  
-    m = Basemap(projection=projection, resolution=resolution,
-                llcrnrlat=llcornerlat, urcrnrlat=urcornerlat, 
-                llcrnrlon=llcornerlong, urcrnrlon=urcornerlong, ax=ax)
-    m.drawmapboundary()
-
-    return m
 
 
 def precinct_frac(resultdf, record, candidate='RAHM EMANUEL', verbose=False):
@@ -264,6 +265,7 @@ def rahm_vs_chuy():
     
     plt.show()
 
+
 def precinct_results(candidate):
     '''
     Plot fraction of votes for 'candidate,' by precinct.
@@ -276,6 +278,30 @@ def precinct_results(candidate):
     ax.set_title("Fraction of ward voting for %s" % candidate)
     
     plt.colorbar()
+    plt.show()
+
+
+def draw_ward_tracts(wardshape, chimap, ax=plt.gca()):
+    '''
+    Given a ward's shapefile.shape, draw ward and its census tracts.
+    '''
+    wardpoly = geom.Polygon(wardshape.points)
+    lines = utils.shape_to_linecollection(wardshape, chimap, 'b', 1.0)
+    ax.add_collection(lines)
+
+    censfile = shapefile.Reader('shapefiles/wgs84_ACSdata_tracts/ChTr0812')
+
+    for shape, rec in zip(censfile.shapes(), censfile.records()):
+        tractpoly = geom.Polygon(shape.points)
+
+        if wardpoly.intersects(tractpoly):
+            try:
+                interfrac = wardpoly.intersection(tractpoly).area/wardpoly.area
+                if interfrac > 1e-4:
+                    lines = utils.shape_to_linecollection(shape, chimap, 'r')
+                    ax.add_collection(lines)
+            except TopologicalError:
+                print rec
     plt.show()
 
 

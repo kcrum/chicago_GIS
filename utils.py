@@ -1,8 +1,14 @@
+from matplotlib.collections import LineCollection
 import numpy as np
 import pandas as pd
+# Scraping
 from bs4 import BeautifulSoup
 from urllib2 import urlopen
+# GIS
+import shapely.geometry as geom
 from osgeo import osr
+import shapefile
+
 
 
 def esriprj_to_proj4(shapeprj_path):
@@ -112,3 +118,70 @@ def scrape_mayor_results_precinct(nwards=50):
             df = df.append(rowdict, ignore_index=True)
 
     return df
+
+
+def ward_census_overlap(wardbase='chicago_2015_wards/chicago_2015_wards', 
+                        censusbase='wgs84_ACSdata_tracts/ChTr0812', 
+                        verbose=False, threshold=1e-4):
+    '''
+    Searches for overlap between wards and census blocks. Ignores overlaps
+    which are smaller than threshold*(ward's area).
+    '''
+    wardfile = shapefile.Reader('shapefiles/' + wardbase)
+    censfile = shapefile.Reader('shapefiles/' + censusbase)
+
+    # Make dict of census field indices, where 'field' is key and corresponding
+    # index for 'field' is value.
+    censinds = {}
+    i = 0
+    for f in censfile.fields[1:]:
+        censinds[f[0]] = i
+        i += 1
+
+    # TEST CODE
+    # Make a shapely polygon of ward 48
+    poly48 = geom.Polygon(wardfile.shapes()[0].points)
+
+    tractlist = []
+    totoverlap = 0
+    for shape, rec in zip(censfile.shapes(), censfile.records()):
+        tractnum = rec[censinds['TRACT']]
+        tractpoly = geom.Polygon(shape.points)
+        
+        if poly48.intersects(tractpoly):
+            interfrac = poly48.intersection(tractpoly).area/poly48.area
+            if interfrac > 1e-4:
+                if verbose: 
+                    print 'Tract %s intersects with ward 48; area: %s' % \
+                        (tractnum, interfrac)
+                    totoverlap += interfrac
+                tractlist.append(tractnum)
+                
+    if verbose: print 'Total overlap: %s' % totoverlap
+    return tractlist
+
+
+def shape_to_linecollection(shape, chimap, edgecolor='k', linewidth=0.1):
+    '''
+    Takes a shape from a shapefile and returns a LineCollection.
+    '''
+    lons=np.array(shape.points).T[0,:]
+    lats=np.array(shape.points).T[1,:]
+
+    data = np.array(chimap(lons, lats)).T
+    
+    # Each shape may have different segments                                
+    if len(shape.parts) == 1:
+        segs = [data,]
+    else:
+        segs = []
+        for i in range(1,len(shape.parts)):
+            index = shape.parts[i-1]
+            index2 = shape.parts[i]
+            segs.append(data[index:index2])
+        segs.append(data[index2:])
+
+    lines = LineCollection(segs,antialiaseds=(1,))
+    lines.set_edgecolors(edgecolor)
+    lines.set_linewidth(linewidth)
+    return lines
