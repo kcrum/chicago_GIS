@@ -20,88 +20,6 @@ import shapefile
 import pyproj
 
 
-def create_line_segments(chimap, sfile, proj4string, color=True, 
-                         precincts=False, ax=plt.gca()):
-    '''
-    DEPRECATED (FINALLY!!!)
-
-    Takes a shapefile and Proj4 projection string and adds line segments 
-    demarcating ward and/or precinct boundaries to the plot axis. Roughly 
-    follows example of:
-    http://nbviewer.ipython.org/github/rjtavares/numbers_arent_people/blob/master/experiments/Plotting%20with%20Basemap%20and%20Shapefiles.ipynb
-    '''
-
-    ##### Coordinate transformations #####
-    # The shapefiles you got from the City of Chicago Open Data site do not 
-    # contain latitude and longitude points. Rather they contain relative 
-    # measurements (in feet) using a predeterminted projection. Projections are
-    # numerous and complicated, but the distinguishing details can be found in 
-    # the .prj files.
-    #
-    # In order to get lat/lon coorindates (the preferred values for Basemap), 
-    # you must transform coordinates from the city's projection. You 
-    # successfully managed to transform a coodinate using information from the 
-    # following StackExchange posts:
-    #
-    #http://gis.stackexchange.com/questions/10209/converting-x-y-coordinates-to-lat-long-using-pyproj-and-proj-4-returns-the-wrong
-    #http://gis.stackexchange.com/questions/118215/proj4-string-for-nad832011-louisiana-south-ftus
-    #
-    # One key thing to remember is that the Chicago values are in feet, and 
-    # PyProj always defaults to using meters, even if you pass it an EPSG code 
-    # or Proj4 string that indicates that your projection is in feet. You must 
-    # pass the "preserve_units=True" argument to PyProj in order for it to 
-    # interpret your input coordinates from the city as being in feet.
-    ######################################
-
-
-    colors = ['#E24A33', '#348ABD', '#988ED5', '#777777', '#FBC15E', '#8EBA42',
-              '#FFB5B8']
-
-    # Initialize input projection, as specified by Proj4 string.
-    inproj = pyproj.Proj(proj4string, preserve_units=True)
-    # From gis.StackExchange: "WGS84 comprises a standard coordinate frame for
-    # the Earth, a datum/reference ellipsoid for raw altitude data, and a 
-    # gravitational equipotential surface (the geoid) that defines the nominal 
-    # sea level. '4326' is just the EPSG identifier of WGS84." 
-    # This 'outproj' just specifies a point by its longitude and latitude.
-    outproj = pyproj.Proj(init='epsg:4326')
-
-    # If we're looking at precincts, open precinct-level results.
-    if precincts:
-        precinct_results = pd.read_csv('data/precinct_level_mayoral_results.csv')
-        
-    for record, shape in zip(sfile.records(),sfile.shapes()):
-        # Get points (in input projection) from shapefile
-        xarr,yarr = zip(*shape.points)
-        # Transform points from input projection to longitudes and latitudes
-        lons, lats = pyproj.transform(inproj, outproj, xarr, yarr)
-        data = np.array(chimap(lons, lats)).T
-
-        # Each shape may have different segments
-        if len(shape.parts) == 1:
-            segs = [data,]
-        else:
-            segs = []
-            for i in range(1,len(shape.parts)):
-                index = shape.parts[i-1]
-                index2 = shape.parts[i]
-                segs.append(data[index:index2])
-            segs.append(data[index2:])
-
-        # Draws the segments, set their properties. 
-        lines = LineCollection(segs,antialiaseds=(1,))
-        # Use a colormap to color the wards or precincts
-        if color and record[2] != 'OUT' and not precincts:                    
-            lines.set_facecolors(colors[int(record[2])%len(colors)])
-        if color and precincts:            
-            lines.set_array(precinct_frac(precinct_results,record))
-            lines.set_cmap(cm.hot)
-            
-        lines.set_edgecolors('k')
-        lines.set_linewidth(0.1)
-        ax.add_collection(lines)
-
-
 def draw_chicago(projection='merc', resolution='c',ax=plt.gca()):
     '''
     Create and return Chicago Basemap upon which wards will be plotted.
@@ -222,6 +140,27 @@ def ward_color_frac(chimap, ax=plt.gca(), candidate='RAHM EMANUEL', shapefileroo
     plt.imshow(cmleg, cmap=plt.get_cmap('CMRmap'))
 
 
+def census_ethnicity_frac(chimap, ax=plt.gca(), ethnicity='PtL', shapefileroot='shapefiles/wgs84_ACSdata_tracts/ChTr0812'):
+    '''
+    Given a map of Chicago, add census tracts colored by percentage of 
+    inhabitants of a certain ethnic group (default: Latino). For non-Latino 
+    African-American, use the string 'PtNLB'. For non-Latino whites, use the 
+    string 'PtNLWh'.
+    '''
+    chimap.readshapefile(shapefileroot,'tracts')
+    
+    for shape, tractinfo in zip(chimap.tracts, chimap.tracts_info):        
+        ethnicfrac = tractinfo[ethnicity]/100.
+        poly = Polygon(shape, facecolor=cm.Reds(ethnicfrac))
+        ax.add_patch(poly)        
+
+    lenleg = 25
+    cmleg = np.zeros((1,lenleg))
+    for i in range(lenleg):
+        cmleg[0,i] = float(i)/lenleg
+    plt.imshow(cmleg, cmap=plt.get_cmap('Reds'))
+
+
 def ward_color_frac_2011(chimap, ax=plt.gca(), candidate='RAHM EMANUEL', 
                          shapefileroot='shapefiles/pre2015_wards/wgs84_wards/Wards'):
     '''
@@ -246,20 +185,21 @@ def ward_color_frac_2011(chimap, ax=plt.gca(), candidate='RAHM EMANUEL',
     plt.imshow(cmleg, cmap=plt.get_cmap('CMRmap'))
 
 
-def rahm_vs_chuy():
+def candidate_vs_candidate(cand1='rahm', cand2='chuy'):
     '''
-    Plot fraction of votes for Rahm and Chuy, by precinct.
+    Plot fraction of votes by precinct for two candidates.
     '''
     fig, (ax1,ax2) = plt.subplots(1,2)
 
     chimap = draw_chicago(resolution='c',ax=ax1)
-    precinct_color_frac(chimap, candidate='RAHM EMANUEL',ax=ax1)
-    ax1.set_title("Fraction of ward voting for RAHM EMANUEL")
+    candidate = candidate_shorthands(cand1)
+    precinct_color_frac(chimap, candidate=candidate,ax=ax1)
+    ax1.set_title("Fraction of ward voting for %s" % candidate)
 
     plt.colorbar()
 
     chimap2 = draw_chicago(resolution='c',ax=ax2)
-    candidate = candidate_shorthands('chuy')
+    candidate = candidate_shorthands(cand2)
     precinct_color_frac(chimap2, candidate=candidate,ax=ax2)
     ax2.set_title("Fraction of ward voting for %s" % candidate)
     
