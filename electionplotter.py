@@ -271,6 +271,6 @@ def bad_census_tracts(chimap, ax=plt.gca(), edgecolor='k', verbose=False,
 
 if __name__=='__main__':
     if len(sys.argv) == 1:
-        rahm_vs_chuy()
+        candidate_vs_candidate()
     else:
         precinct_results(sys.argv[1])
