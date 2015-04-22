@@ -1,0 +1,61 @@
+Field Name,Field Label
+Total,Total population
+A0004,Age 0-4
+A0509,Age 5-9
+A1014,Age 10-14
+A1517,Age 15-17
+A1819,Age 18-19
+A20,Age 20
+A21,Age 21
+A2224,Age 22-24
+A2529,Age 25-29
+A3034,Age 30-34
+A3539,Age 35-39
+A4044,Age 40-44
+A4549,Age 45-49
+A5054,Age 50-54
+A5559,Age 55-59
+A6061,Age 60-61
+A6264,Age 62-64
+A6566,Age 65-66
+A6769,Age 67-69
+A7074,Age 70-74
+A7579,Age 75-79
+A8084,Age 80-84
+A8599,Age 85-99
+Pct017,Pct 0-17 years
+Pct1824,Pct 18-24 years
+Pct2534,Pct 25-34 years
+Pct3544,Pct 35-44 years
+Pct4554,Pct 45-54 years
+Pct5564,Pct 55-64 years
+Pct6500,Pct 65 years and over
+Total1,Total
+NL,Non-Latino
+NLWh,Non-Latino White
+NLBl,Non-Latino Black
+NLAIAN,Non-Latino American Indian Alaskan Native
+NLA,Non-Latino Asian
+NLNHOPI,Non-Latino Native Hawaiian Other Pacific Islander
+NLOther,Non-Latino Other
+Latino,Latino
+PtNLA,Pct Non-Latino Asian
+PtNLB,Pct Non-Latino Black
+PtNLWh,Pct Non-Latino White
+PtNLOth,Pct Non-Latino Other
+PtL,Pct. Latino
+FB,Foreign Born
+Total25,Total 25 years and over
+LTHS,25 years and over less than high school
+HSGED,25 years and over high school or GED
+SomeColl,25 years and over some college
+BAPlus,25 years and over bachelor's degree or higher
+PtLTHS,Pct. less than high school
+PtHSGED,Pct. with HS or GED
+PtSomeCo,Pct with some college
+PtBAPlus,Pct with bachelor's or higher
+TotDet,Total for whom poverty status is determined
+Pov,Below poverty level
+PtPov,Pct below poverty level
+Tract_1,
+PctFB,Pct foreign born
